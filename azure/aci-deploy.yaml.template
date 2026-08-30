@@ -1,0 +1,57 @@
+apiVersion: '2021-10-01'
+location: ${LOCATION}
+name: ${CONTAINER_GROUP_NAME}
+properties:
+  containers:
+    - name: oracle-mercadoexpress
+      properties:
+        image: ${ACR_SERVER}/${rm}-oracle-mercadoexpress:v1
+        ports:
+          - port: 1521
+        environmentVariables:
+          - name: ORACLE_PASSWORD
+            secureValue: ${ORACLE_PASSWORD}
+        resources:
+          requests:
+            cpu: 1
+            memoryInGB: 2
+        volumeMounts:
+          - name: oracledata
+            mountPath: /opt/oracle/oradata
+    - name: api-mercadoexpress
+      properties:
+        image: ${ACR_SERVER}/${rm}-api-mercadoexpress:v1
+        ports:
+          - port: 8080
+        environmentVariables:
+          - name: SPRING_DATASOURCE_URL
+            value: ${SPRING_DATASOURCE_URL}
+          - name: SPRING_DATASOURCE_USERNAME
+            value: ${SPRING_DATASOURCE_USERNAME}
+          - name: SPRING_DATASOURCE_PASSWORD
+            secureValue: ${SPRING_DATASOURCE_PASSWORD}
+        resources:
+          requests:
+            cpu: 1
+            memoryInGB: 1
+  imageRegistryCredentials:
+    - server: ${ACR_SERVER}
+      username: ${ACR_USERNAME}
+      password: ${ACR_PASSWORD}
+  osType: Linux
+  ipAddress:
+    type: Public
+    ports:
+      - port: 1521
+        protocol: tcp
+      - port: 8080
+        protocol: tcp
+  restartPolicy: Always
+  volumes:
+    - name: oracledata
+      azureFile:
+        shareName: ${FILE_SHARE}
+        storageAccountName: ${STORAGE_ACCOUNT}
+        storageAccountKey: ${STORAGE_KEY}
+tags: {}
+type: Microsoft.ContainerInstance/containerGroups

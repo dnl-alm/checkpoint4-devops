@@ -1,0 +1,31 @@
+# Copie este arquivo para .envaci e preencha os valores reais antes de rodar
+# `set -a; source .envaci; set +a`
+# NUNCA commitar o .envaci real (com senhas) no GitHub — só este .example
+
+# ALTERE PARA SEU RM
+rm=rm563045
+
+RESOURCE_GROUP="rg-rm563045-mercadoexpress"
+LOCATION="canadacentral"
+
+# --- Conta de Armazenamento (persistência do Oracle) ---
+STORAGE_ACCOUNT="volume${rm}"
+FILE_SHARE="${rm}-oracle-mercadoexpress-volume"
+STORAGE_KEY=$(az storage account keys list --resource-group $RESOURCE_GROUP --account-name $STORAGE_ACCOUNT --query "[0].value" -o tsv)
+
+# --- Oracle ---
+ORACLE_PASSWORD=senha-mercadoexpress
+
+# --- API Spring Boot (Oracle Thin JDBC) ---
+# service name padrão da imagem gvenzl/oracle-xe:21-slim é XEPDB1
+SPRING_DATASOURCE_URL="jdbc:oracle:thin:@//localhost:1521/XEPDB1"
+SPRING_DATASOURCE_USERNAME=system
+SPRING_DATASOURCE_PASSWORD=senha-mercadoexpress
+
+# --- ACR ---
+ACR_NAME="${rm}acrme"
+ACR_SERVER="${ACR_NAME}.azurecr.io"
+ACR_USERNAME=$(az acr credential show --name $ACR_NAME --resource-group $RESOURCE_GROUP --query username --output tsv)
+ACR_PASSWORD=$(az acr credential show --name $ACR_NAME --resource-group $RESOURCE_GROUP --query passwords[0].value --output tsv)
+
+CONTAINER_GROUP_NAME="${rm}-mercadoexpress-aci"
