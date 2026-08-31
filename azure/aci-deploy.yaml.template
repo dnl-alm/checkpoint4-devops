@@ -1,4 +1,4 @@
-apiVersion: '2021-10-01'
+apiVersion: '2026-08-30'
 location: ${LOCATION}
 name: ${CONTAINER_GROUP_NAME}
 properties:
@@ -11,6 +11,12 @@ properties:
         environmentVariables:
           - name: ORACLE_PASSWORD
             secureValue: ${ORACLE_PASSWORD}
+          - name: ORACLE_DATABASE
+            value: ${ORACLE_DATABASE}
+          - name: APP_USER
+            value: ${APP_USER}
+          - name: APP_USER_PASSWORD
+            secureValue: ${APP_USER_PASSWORD}
         resources:
           requests:
             cpu: 1
@@ -18,6 +24,14 @@ properties:
         volumeMounts:
           - name: oracledata
             mountPath: /opt/oracle/oradata
+        readinessProbe:
+          exec:
+            command:
+              - healthcheck.sh
+          periodSeconds: 30
+          initialDelaySeconds: 60
+          failureThreshold: 15
+          timeoutSeconds: 10
     - name: api-mercadoexpress
       properties:
         image: ${ACR_SERVER}/${rm}-api-mercadoexpress:v1
