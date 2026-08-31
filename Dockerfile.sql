@@ -1,3 +1,5 @@
-FROM gvenzl/oracle-xe:21-slim
+FROM mysql:8.0
 
-EXPOSE 1521
+EXPOSE 3306
+
+COPY docker-entrypoint-initdb.d/init.sql /docker-entrypoint-initdb.d/init.sql

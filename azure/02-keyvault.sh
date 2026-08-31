@@ -6,37 +6,32 @@ rm=rm563045
 resourceGroup="rg-rm563045-mercadoexpress"
 location="canadacentral"
 
-# --- Oracle ---
-ORACLE_PASSWORD=senha-sys-mercadoexpress
-ORACLE_DATABASE=mercadoexpress
-APP_USER=mercadoexpress_app
-APP_USER_PASSWORD=senha-app-mercadoexpress
+# --- MySQL ---
+MYSQL_ROOT_PASSWORD=senha-root-mercadoexpress
+MYSQL_DATABASE=mercadoexpress
+MYSQL_USER=mercadoexpress_app
+MYSQL_PASSWORD=senha-app-mercadoexpress
 
 # --- Datasource da API ---
-# "ORACLE_HOST_PLACEHOLDER" é substituído pelo FQDN real do ACI do Oracle
-# no momento do deploy da API (veja 04-deploy-api-aci.sh) — como são dois
-# ACIs separados agora (não um container group), não existe "localhost"
-# em comum entre eles.
-SPRING_DATASOURCE_URL="jdbc:oracle:thin:@//ORACLE_HOST_PLACEHOLDER:1521/mercadoexpress"
-SPRING_DATASOURCE_USERNAME=$APP_USER
-SPRING_DATASOURCE_PASSWORD=$APP_USER_PASSWORD
+# "DB_HOST_PLACEHOLDER" é substituído pelo FQDN real do ACI do MySQL
+# no momento do deploy da API (veja 04-deploy-api-aci.sh).
+SPRING_DATASOURCE_URL="jdbc:mysql://DB_HOST_PLACEHOLDER:3306/mercadoexpress?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC"
+SPRING_DATASOURCE_USERNAME=$MYSQL_USER
+SPRING_DATASOURCE_PASSWORD=$MYSQL_PASSWORD
 
 acrName="rm563045acrme"
 ACRUSERNAME=$(az acr credential show --name $acrName --resource-group $resourceGroup --query username --output tsv)
 ACRPASSWORD=$(az acr credential show --name $acrName --resource-group $resourceGroup --query passwords[0].value --output tsv)
 keyVaultName="keyvault-$rm"
 
-# Registra o Serviço do Key Vault na Assinatura
 az provider register --namespace Microsoft.KeyVault
 
-# Cria o Key Vault
 if ! az keyvault show --name "$keyVaultName" --resource-group "$resourceGroup" &> /dev/null; then
   az keyvault create --name "$keyVaultName" --resource-group "$resourceGroup" --location "$location"
 else
   echo "Key Vault '$keyVaultName' já existe no Grupo de Recurso '$resourceGroup'."
 fi
 
-# Concede acesso de ADM no Key Vault para nossa Assinatura
 az role assignment create \
   --assignee $(az account show --query user.name -o tsv) \
   --role "Key Vault Administrator" \
@@ -44,11 +39,10 @@ az role assignment create \
 
 sleep 15
 
-# Armazena os dados sensíveis
-az keyvault secret set --vault-name $keyVaultName --name oracle-password --value "$ORACLE_PASSWORD"
-az keyvault secret set --vault-name $keyVaultName --name oracle-database --value "$ORACLE_DATABASE"
-az keyvault secret set --vault-name $keyVaultName --name app-user --value "$APP_USER"
-az keyvault secret set --vault-name $keyVaultName --name app-user-password --value "$APP_USER_PASSWORD"
+az keyvault secret set --vault-name $keyVaultName --name mysql-root-password --value "$MYSQL_ROOT_PASSWORD"
+az keyvault secret set --vault-name $keyVaultName --name mysql-database --value "$MYSQL_DATABASE"
+az keyvault secret set --vault-name $keyVaultName --name mysql-user --value "$MYSQL_USER"
+az keyvault secret set --vault-name $keyVaultName --name mysql-password --value "$MYSQL_PASSWORD"
 az keyvault secret set --vault-name $keyVaultName --name spring-datasource-url --value "$SPRING_DATASOURCE_URL"
 az keyvault secret set --vault-name $keyVaultName --name spring-datasource-username --value "$SPRING_DATASOURCE_USERNAME"
 az keyvault secret set --vault-name $keyVaultName --name spring-datasource-password --value "$SPRING_DATASOURCE_PASSWORD"
