@@ -32,6 +32,7 @@ RM do representante do grupo: **563045** (usado como prefixo em todos os recurso
 ├── src/                          # código-fonte da API
 ├── pom.xml
 └── azure/
+    ├── 00-setup-acr.sh
     ├── 01-storage-account.sh
     ├── 02-keyvault.sh
     ├── 03-deploy-mysql-aci.sh
@@ -94,7 +95,16 @@ Se responder com a lista HATEOAS vazia, está tudo certo. Derrube o ambiente loc
 docker compose down
 ```
 
-## Passo 3 — Build das imagens e push pro ACR
+## Passo 3 — Criar o Resource Group e o ACR
+
+```bash
+cd azure
+bash 00-setup-acr.sh
+```
+
+Cria o Resource Group (`rg-rm563045-mercadoexpress`) e o Azure Container Registry (`rm563045acrme`) com usuário admin habilitado — pré-requisito pros passos seguintes (push de imagem e leitura de credenciais no `02-keyvault.sh`).
+
+## Passo 4 — Build das imagens e push pro ACR
 
 ```bash
 az acr login --name rm563045acrme
@@ -106,13 +116,11 @@ docker build -f Dockerfile.api -t rm563045acrme.azurecr.io/rm563045-api-mercadoe
 docker push rm563045acrme.azurecr.io/rm563045-api-mercadoexpress:v1
 ```
 
-## Passo 4 — Provisionar a infraestrutura em nuvem
+## Passo 5 — Provisionar o restante da infraestrutura em nuvem
 
-Execute os scripts em `azure/`, **nesta ordem** (cada um depende do anterior):
+Continue executando os scripts em `azure/`, **nesta ordem** (cada um depende do anterior):
 
 ```bash
-cd azure
-
 bash 01-storage-account.sh   # Resource Group + Storage Account + File Share
 bash 02-keyvault.sh          # Key Vault + segredos (MySQL e ACR)
 bash 03-deploy-mysql-aci.sh  # ACI do banco (lê segredos do Key Vault)
@@ -130,7 +138,7 @@ az container logs --resource-group $resourceGroup --name rm563045-mysql-mercadoe
 az container logs --resource-group $resourceGroup --name rm563045-api-mercadoexpress
 ```
 
-## Passo 5 — Testes em nuvem (evidência de CRUD)
+## Passo 6 — Testes em nuvem (evidência de CRUD)
 
 ```bash
 resourceGroup="rg-rm563045-mercadoexpress"
