@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS TDS_TB_mercado (
+CREATE TABLE IF NOT EXISTS tds_tb_mercado (
                                               Id INT AUTO_INCREMENT PRIMARY KEY,
                                               Nome VARCHAR(255) NOT NULL,
     Tipo VARCHAR(100),
