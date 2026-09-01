@@ -4,9 +4,17 @@ API Spring Boot (CRUD + HATEOAS nível 3) com banco MySQL, containerizada, publi
 
 RM do representante do grupo: **563045** (usado como prefixo em todos os recursos).
 
+# Desenvolvido por
+
+- Guilherme Cintra RM562850
+- Erick de Faria Gama RM561951
+- Matheus Nascimento Corregio RM563765
+- Pedro Fonseca de Almeida RM563466
+- Daniel Fonseca de Almeida RM563045
+
 ## Arquitetura
 
-- **Dois ACIs separados** (não um container group): `rm563045-mysql-mercadoexpress` e `rm563045-api-mercadoexpress`, cada um com seu próprio FQDN público (`--dns-name-label`).
+- **Dois ACIs separados**: `rm563045-mysql-mercadoexpress` e `rm563045-api-mercadoexpress`, cada um com seu próprio FQDN público (`--dns-name-label`).
 - **Azure Key Vault** guarda todas as credenciais (banco e ACR) — nada de senha em texto puro nos scripts de deploy.
 - **Azure File Share** monta `/var/lib/mysql`, garantindo que os dados sobrevivem a restart/redeploy do container do banco.
 - O container da API **não roda como root** (usuário `appuser` dedicado no Dockerfile).
@@ -15,7 +23,7 @@ RM do representante do grupo: **563045** (usado como prefixo em todos os recurso
 
 - Docker instalado e rodando
 - Azure CLI (`az`) autenticado (`az login`) na assinatura correta
-- Cliente `mysql` instalado localmente (pra testar/verificar dados)
+- Cliente `mysql` instalado localmente (opcional — dá pra rodar os `SELECT` de dentro do próprio container via `az container exec`, veja o Passo 6)
 - `jq` (opcional, só pra formatar JSON do `curl` nos testes)
 
 ## Estrutura de arquivos no repositório
@@ -160,7 +168,7 @@ mysql -h $dbFQDN -P 3306 -u mercadoexpress_app -p mercadoexpress -e "SELECT * FR
 ```bash
 curl -X POST "http://$fqdnApi:8080/mercado" \
   -H "Content-Type: application/json" \
-  -d '{"nome": "Sabonete", "tipo": "Higiene", "setor": "A1", "tamanho": "M", "preco": 5.90}'
+  -d '{"nome": "Sabonete", "tipo": "Higiene", "setor": "A1", "tamanho": "0.01", "preco": 5.90}'
 ```
 
 **4. SELECT — confirma o INSERT:**
@@ -177,7 +185,7 @@ curl -X GET "http://$fqdnApi:8080/mercado/1"
 ```bash
 curl -X PUT "http://$fqdnApi:8080/mercado/1" \
   -H "Content-Type: application/json" \
-  -d '{"nome": "Sabonete - ALTERADO", "tipo": "Higiene", "setor": "A1", "tamanho": "M", "preco": 6.50}'
+  -d '{"nome": "Sabonete - ALTERADO", "tipo": "Higiene", "setor": "A1", "tamanho": "0.01", "preco": 6.50}'
 ```
 
 **7. SELECT — confirma o UPDATE:**
@@ -196,6 +204,29 @@ mysql -h $dbFQDN -P 3306 -u mercadoexpress_app -p mercadoexpress -e "SELECT * FR
 ```
 
 Print de cada resposta do `curl` junto com o `SELECT` correspondente é a evidência exigida no item 4 do checkpoint.
+
+### Alternativa: rodar o SELECT sem cliente mysql local
+
+Se você não tem o cliente `mysql` instalado na sua máquina, dá pra rodar os `SELECT` de duas formas sem instalar nada:
+
+**Opção A — usando o Docker que você já tem:**
+```bash
+docker run -it --rm mysql:8.0 mysql -h $dbFQDN -P 3306 -u mercadoexpress_app -p mercadoexpress -e "SELECT * FROM tds_tb_mercado;"
+```
+
+**Opção B — entrando direto no container do banco no ACI:**
+```bash
+az container exec \
+  --resource-group $resourceGroup \
+  --name rm563045-mysql-mercadoexpress \
+  --container-name rm563045-mysql-mercadoexpress \
+  --exec-command "/bin/bash"
+```
+Isso abre um shell dentro do próprio container. De lá dentro, conecta em `localhost` (o cliente `mysql` já vem na imagem oficial):
+```bash
+mysql -u mercadoexpress_app -p mercadoexpress -e "SELECT * FROM tds_tb_mercado;"
+```
+`exit` pra sair do shell depois.
 
 ## Onde ver as senhas/segredos
 
